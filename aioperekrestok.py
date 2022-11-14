@@ -1,23 +1,24 @@
+
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 import re
+import aiohttp
+import asyncio
 
-def get_discount():
+async def get_discount():
     ua = UserAgent()
     page = 1
     headers = {
         'user-agent': ua.random,
     }
     all_items = []
-    while True:
-        try:
-            url = f'https://www.perekrestok.ru/cat/d?append=1&page={page}'
-            response = requests.get(url, headers=headers)
-            soup = BeautifulSoup(response.text, 'lxml')
-
+    try:
+        url = f'https://www.perekrestok.ru/cat/d?append=1&page={page}'
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url, headers=headers)
+            soup = BeautifulSoup(await response.text(), 'lxml')
             items = soup.find('div', class_='sc-gTgzIj fTLLNh spinner-container-wrapper').find_all('div', class_='product-card-wrapper')
-
             for item in items:
                 try:
                     all_items.append({
@@ -29,12 +30,13 @@ def get_discount():
                 except:
                     continue
             page += 1
-        except:
-            return all_items
+    except:
+        return all_items
 
 
-def main():
-    products = get_discount()
+async def main():
+    products = await get_discount()
+
     for item in products:
         raz = '{:.2f}'.format(float(item['old_price']) - float(item['new_price']))
         if int(item['percent']) > 1:
@@ -44,4 +46,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
